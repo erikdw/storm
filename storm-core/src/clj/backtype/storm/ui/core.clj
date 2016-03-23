@@ -262,9 +262,10 @@
               (bolt-comp-summs id))]
     (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)))
 
-(defn worker-log-link [host port]
-  (url-format "http://%s:%s/log?file=worker-%s.log"
-              host (*STORM-CONF* LOGVIEWER-PORT) port))
+(defn worker-log-link [host port topology-id]
+  (let [fname (logs-filename topology-id port)]
+    (url-format (str "http://%s:%s/log?file=%s")
+          host (*STORM-CONF* LOGVIEWER-PORT) fname)))
 
 (defn compute-executor-capacity
   [^ExecutorSummary e]
@@ -563,7 +564,7 @@
      "failed" (get-in stats [:failed window])
      "errorHost" error-host
      "errorPort" error-port
-     "errorWorkerLogLink" (worker-log-link error-host error-port)
+     "errorWorkerLogLink" (worker-log-link error-host error-port top-id)
      "errorLapsedSecs" (get-error-time last-error)
      "lastError" (get-error-data last-error) }))
 
@@ -590,7 +591,7 @@
      "failed" (get-in stats [:failed window])
      "errorHost" error-host
      "errorPort" error-port
-     "errorWorkerLogLink" (worker-log-link error-host error-port)
+     "errorWorkerLogLink" (worker-log-link error-host error-port top-id)
      "errorLapsedSecs" (get-error-time last-error)
      "lastError" (get-error-data last-error) }))
 
@@ -686,7 +687,7 @@
      "completeLatency" (float-str (:complete-latencies stats))
      "acked" (nil-to-zero (:acked stats))
      "failed" (nil-to-zero (:failed stats))
-     "workerLogLink" (worker-log-link (.get_host e) (.get_port e))}))
+     "workerLogLink" (worker-log-link (.get_host e) (.get_port e) topology-id)}))
 
 (defn component-errors
   [errors-list topology-id]
@@ -698,7 +699,7 @@
        {"time" (* 1000 (long (.get_error_time_secs e)))
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
-        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e))
+        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e) topology-id)
         "errorLapsedSecs" (get-error-time e)
         "error" (.get_error e)})}))
 
@@ -785,7 +786,7 @@
      "processLatency" (float-str (:process-latencies stats))
      "acked" (nil-to-zero (:acked stats))
      "failed" (nil-to-zero (:failed stats))
-     "workerLogLink" (worker-log-link (.get_host e) (.get_port e))}))
+     "workerLogLink" (worker-log-link (.get_host e) (.get_port e) topology-id)}))
 
 (defn bolt-stats
   [window ^TopologyInfo topology-info component executors include-sys?]

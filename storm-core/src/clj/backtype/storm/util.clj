@@ -956,5 +956,11 @@
               (list form x)))
   ([x form & more] `(-<> (-<> ~x ~form) ~@more)))
 
+(defn- logs-rootname [storm-id port]
+  (str storm-id "-worker-" port))
+
+(defn logs-filename [storm-id port]
+  (str (logs-rootname storm-id port) ".log"))
+
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))

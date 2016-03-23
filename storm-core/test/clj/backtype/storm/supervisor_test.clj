@@ -253,7 +253,7 @@
                                opts
                                topo-opts
                                ["-Djava.library.path="
-                                (str "-Dlogfile.name=worker-" mock-port ".log")
+                                (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
                                 "-Dstorm.home="
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="

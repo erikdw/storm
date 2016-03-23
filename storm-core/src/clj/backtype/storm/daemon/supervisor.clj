@@ -549,7 +549,7 @@
           topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})
-          logfilename (str "worker-" port ".log")
+          logfilename (logs-filename storm-id port)
           command (concat
                     [(java-cmd) "-server"]
                     worker-childopts
