@@ -539,7 +539,7 @@
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
-          classpath (-> (current-classpath)
+          classpath (-> (orig-classpath)
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
           worker-childopts (when-let [s (conf WORKER-CHILDOPTS)]

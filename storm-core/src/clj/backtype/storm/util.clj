@@ -541,6 +541,19 @@
   []
   (System/getProperty "java.class.path"))
 
+; Retrieve the original classpath set in the bin/storm python wrapper.
+;
+; Supports passing a shorter classpath argument to launched subprocesses, such as workers.
+; Without this ORIG_CLASSPATH mechanism, the wildcard-ness of the original classpath of
+; this process is lost, since the JVM translates wildcard classpaths into a list of the
+; found .JAR/.jar files in the wildcard dir(s), storing the expanded paths into
+; java.class.path.
+(defn orig-classpath
+  []
+  (if (empty? (System/getenv "ORIG_CLASSPATH"))
+    (current-classpath)
+    (System/getenv "ORIG_CLASSPATH")))
+
 (defn add-to-classpath
   [classpath paths]
   (if (empty? paths)

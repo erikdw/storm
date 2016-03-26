@@ -92,17 +92,9 @@ if not os.path.exists(STORM_DIR + "/RELEASE"):
     print("******************************************")
     sys.exit(1)  
 
-def get_jars_full(adir):
-    files = os.listdir(adir)
-    ret = []
-    for f in files:
-        if f.endswith(".jar"):
-            ret.append(adir + "/" + f)
-    return ret
-
 def get_classpath(extrajars):
-    ret = get_jars_full(STORM_DIR)
-    ret.extend(get_jars_full(STORM_DIR + "/lib"))
+    ret = []
+    ret.append(STORM_DIR + "/lib/*")
     ret.extend(extrajars)
     return normclasspath(":".join(ret))
 
@@ -176,11 +168,13 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         "-Dstorm.conf.file=" + CONFFILE,
         "-cp", get_classpath(extrajars),
     ] + jvmopts + [klass] + list(args)
+    env = os.environ
+    env["ORIG_CLASSPATH"] = get_classpath(extrajars)
     print("Running: " + " ".join(all_args))
     if fork:
-        os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
+        os.spawnvpe(os.P_WAIT, JAVA_CMD, all_args, env)
     else:
-        os.execvp(JAVA_CMD, all_args) # replaces the current process and
+        os.execvpe(JAVA_CMD, all_args, env) # replaces the current process and
         # never returns
 
 def jar(jarfile, klass, *args):
