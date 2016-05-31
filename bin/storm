@@ -171,6 +171,7 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
     env = os.environ
     env["ORIG_CLASSPATH"] = get_classpath(extrajars)
     print("Running: " + " ".join(all_args))
+    sys.stdout.flush()
     if fork:
         os.spawnvpe(os.P_WAIT, JAVA_CMD, all_args, env)
     else:
