@@ -108,25 +108,20 @@ if not os.path.exists(STORM_LIB_DIR):
     print("******************************************")
     sys.exit(1)
 
-def get_jars_full(adir):
-    files = []
-    if os.path.isdir(adir):
-        files = os.listdir(adir)
-    elif os.path.exists(adir):
-        files = [adir]
-
-    ret = []
-    for f in files:
-        if f.endswith(".jar"):
-            ret.append(os.path.join(adir, f))
+# If given path is a dir, make it a wildcard so the JVM will include all JARs in the directory.
+def get_wildcard_dir(path):
+    if os.path.isdir(path):
+        ret = [(os.path.join(path, "*"))]
+    elif os.path.exists(path):
+        ret = [path]
     return ret
 
 def get_classpath(extrajars, daemon=True):
-    ret = get_jars_full(STORM_DIR)
-    ret.extend(get_jars_full(STORM_DIR + "/lib"))
-    ret.extend(get_jars_full(STORM_DIR + "/extlib"))
+    ret = get_wildcard_dir(STORM_DIR)
+    ret.extend(get_wildcard_dir(STORM_DIR + "/lib"))
+    ret.extend(get_wildcard_dir(STORM_DIR + "/extlib"))
     if daemon:
-        ret.extend(get_jars_full(STORM_DIR + "/extlib-daemon"))
+        ret.extend(get_wildcard_dir(STORM_DIR + "/extlib-daemon"))
     if STORM_EXT_CLASSPATH != None:
         ret.append(STORM_EXT_CLASSPATH)
     if daemon and STORM_EXT_CLASSPATH_DAEMON != None:
@@ -260,8 +255,8 @@ def sql(sql_file, topology_name):
     Compiles the SQL statements into a Trident topology and submits it to Storm.
     """
     extrajars=[USER_CONF_DIR, STORM_BIN_DIR]
-    extrajars.extend(get_jars_full(STORM_DIR + "/external/sql/storm-sql-core"))
-    extrajars.extend(get_jars_full(STORM_DIR + "/external/sql/storm-sql-runtime"))
+    extrajars.extend(get_wildcard_dir(STORM_DIR + "/external/sql/storm-sql-core"))
+    extrajars.extend(get_wildcard_dir(STORM_DIR + "/external/sql/storm-sql-runtime"))
     exec_storm_class(
         "org.apache.storm.sql.StormSqlRunner",
         jvmtype="-client",
