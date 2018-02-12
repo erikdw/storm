@@ -190,14 +190,13 @@ tp.setBolt("bolt", new myBolt()).shuffleGrouping("kafka_spout");
 #### Multiple Streams
 
 ```java
-
 final TopologyBuilder tp = new TopologyBuilder();
 
-//By default all topics not covered by another rule, but consumed by the spout will be emitted to "STREAM_1" as "topic", "key", and "value"
+// By default all topics not covered by another rule, but consumed by the spout will be emitted to "STREAM_1" as "topic", "key", and "value"
 ByTopicRecordTranslator<String, String> byTopic = new ByTopicRecordTranslator<>(
     (r) -> new Values(r.topic(), r.key(), r.value()),
     new Fields("topic", "key", "value"), "STREAM_1");
-//For topic_2 all events will be emitted to "STREAM_2" as just "key" and "value"
+// For topic_2 all events will be emitted to "STREAM_2" as just "key" and "value"
 byTopic.forTopic("topic_2", (r) -> new Values(r.key(), r.value()), new Fields("key", "value"), "STREAM_2");
 
 tp.setSpout("kafka_spout", new KafkaSpout<>(KafkaSpoutConfig.builder("127.0.0.1:" + port, "topic_1", "topic_2", "topic_3").build()), 1);
