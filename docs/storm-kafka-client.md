@@ -281,7 +281,7 @@ The Kafka spout provides two internal parameters to control its performance. The
 * "max.uncommitted.offsets" controls how many offsets can be pending commit before another poll can take place
 <br/>
 
-The [Kafka consumer config] (http://kafka.apache.org/documentation.html#consumerconfigs) parameters may also have an impact on the performance of the spout. The following Kafka parameters are likely the most influential in the spout performance: 
+The [Kafka consumer config](http://kafka.apache.org/documentation.html#consumerconfigs) parameters may also have an impact on the performance of the spout. The following Kafka parameters are likely the most influential in the spout performance:
 
 * “fetch.min.bytes”
 * “fetch.max.wait.ms”
