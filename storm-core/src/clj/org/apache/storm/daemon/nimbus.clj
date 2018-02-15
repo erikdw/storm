@@ -1600,6 +1600,18 @@
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (mark! nimbus:num-rebalance-calls)
         (check-storm-active! nimbus storm-name true)
+        ;; storm-on-mesos doesn't support rebalancing, since it doesn't work. The behavior is that
+        ;; nothing seemingly happens, the workers just stay in place.  This happens because the
+        ;; INimbus implementation in storm-on-mesos that is responsible for handling Mesos
+        ;; Offers and translating them into Storm slots doesn't have enough visibility into the
+        ;; Nimbus state to know that a rebalance is pending. Without this visibility, the INimbus
+        ;; implementation does not know that it needs to request Mesos Offers and hold them
+        ;; long enough to complete a full rebalance through the INimbus.allSlotsAvailableForScheduling
+        ;; and INimbus.assignSlots cycle. This means that when the rebalance is actually executed,
+        ;; there is a strong likelihood that there will be no available Mesos Offers and thus no
+        ;; available Storm slots on which to rebalance the worker processes, so the rebalance
+        ;; cannot be performed.
+        (throw (InvalidTopologyException. "Rebalance not supported when running Storm on Mesos"))
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "rebalance"]
           (check-authorization! nimbus storm-name topology-conf operation)
