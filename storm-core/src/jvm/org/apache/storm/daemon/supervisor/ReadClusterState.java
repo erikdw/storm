@@ -84,7 +84,9 @@ public class ReadClusterState implements Runnable, AutoCloseable {
         @SuppressWarnings("unchecked")
         List<Number> ports = (List<Number>)superConf.get(Config.SUPERVISOR_SLOTS_PORTS);
         for (Number port: ports) {
-            slots.put(port.intValue(), mkSlot(port.intValue()));
+            if (iSuper.confirmAssigned(port.intValue())) {
+                slots.put(port.intValue(), mkSlot(port.intValue()));
+            }
         }
         
         try {
@@ -144,9 +146,17 @@ public class ReadClusterState implements Runnable, AutoCloseable {
                     assignedPorts.add(port);
                 }
             }
+            // Tell ISupervisor which ports the Nimbus has assigned to this supervisor. Note that we must not
+            // blindly include the running slots, since they aren't necessarily still assigned.
+            iSuper.assigned(assignedPorts);
+            LOG.debug("Assigned ports: {}", assignedPorts);
             HashSet<Integer> allPorts = new HashSet<>(assignedPorts);
-            iSuper.assigned(allPorts);
-            allPorts.addAll(slots.keySet());
+            for (Integer slot: slots.keySet()) {
+                if (iSuper.confirmAssigned(slot)) {
+                    allPorts.add(slot);
+                }
+            }
+            LOG.debug("Confirmed ports: {}", allPorts);
             
             Map<Integer, Set<TopoProfileAction>> filtered = new HashMap<>();
             for (Entry<String, List<ProfileRequest>> entry: topoIdToProfilerActions.entrySet()) {
