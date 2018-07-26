@@ -95,6 +95,7 @@ public class Slot extends Thread implements AutoCloseable {
         public final Future<Void> pendingDownload;
         public final Set<TopoProfileAction> profileActions;
         public final Set<TopoProfileAction> pendingStopProfileActions;
+        public final boolean workerInitiated;
         
         /**
          * The last time that WAITING_FOR_WORKER_START, KILL, or KILL_AND_RELAUNCH were entered into.
@@ -120,13 +121,15 @@ public class Slot extends Thread implements AutoCloseable {
             this.pendingDownload = null;
             this.profileActions = new HashSet<>();
             this.pendingStopProfileActions = new HashSet<>();
+            this.workerInitiated = false;
         }
         
         public DynamicState(final MachineState state, final LocalAssignment newAssignment,
                 final Container container, final LocalAssignment currentAssignment,
                 final LocalAssignment pendingLocalization, final long startTime,
                 final Future<Void> pendingDownload, final Set<TopoProfileAction> profileActions, 
-                final Set<TopoProfileAction> pendingStopProfileActions) {
+                final Set<TopoProfileAction> pendingStopProfileActions,
+                final boolean workerInitiated) {
             this.state = state;
             this.newAssignment = newAssignment;
             this.currentAssignment = currentAssignment;
@@ -136,6 +139,7 @@ public class Slot extends Thread implements AutoCloseable {
             this.pendingDownload = pendingDownload;
             this.profileActions = profileActions;
             this.pendingStopProfileActions = pendingStopProfileActions;
+            this.workerInitiated = workerInitiated;
         }
         
         public String toString() {
@@ -161,7 +165,7 @@ public class Slot extends Thread implements AutoCloseable {
                     this.container, this.currentAssignment,
                     this.pendingLocalization, this.startTime,
                     this.pendingDownload, this.profileActions,
-                    this.pendingStopProfileActions);
+                    this.pendingStopProfileActions, this.workerInitiated);
         }
         
         public DynamicState withPendingLocalization(LocalAssignment pendingLocalization, Future<Void> pendingDownload) {
@@ -169,7 +173,7 @@ public class Slot extends Thread implements AutoCloseable {
                     this.container, this.currentAssignment,
                     pendingLocalization, this.startTime,
                     pendingDownload, this.profileActions,
-                    this.pendingStopProfileActions);
+                    this.pendingStopProfileActions, this.workerInitiated);
         }
         
         public DynamicState withPendingLocalization(Future<Void> pendingDownload) {
@@ -182,7 +186,7 @@ public class Slot extends Thread implements AutoCloseable {
                     this.container, this.currentAssignment,
                     this.pendingLocalization, newStartTime,
                     this.pendingDownload, this.profileActions,
-                    this.pendingStopProfileActions);
+                    this.pendingStopProfileActions, this.workerInitiated);
         }
 
         public DynamicState withCurrentAssignment(final Container container, final LocalAssignment currentAssignment) {
@@ -190,7 +194,7 @@ public class Slot extends Thread implements AutoCloseable {
                     container, currentAssignment,
                     this.pendingLocalization, this.startTime,
                     this.pendingDownload, this.profileActions,
-                    this.pendingStopProfileActions);
+                    this.pendingStopProfileActions, this.workerInitiated);
         }
 
         public DynamicState withProfileActions(Set<TopoProfileAction> profileActions, Set<TopoProfileAction> pendingStopProfileActions) {
@@ -198,7 +202,15 @@ public class Slot extends Thread implements AutoCloseable {
                     this.container, this.currentAssignment,
                     this.pendingLocalization, this.startTime,
                     this.pendingDownload, profileActions,
-                    pendingStopProfileActions);
+                    pendingStopProfileActions, this.workerInitiated);
+        }
+
+        public DynamicState withWorkerInitiated(boolean workerInitiated) {
+            return new DynamicState(this.state, this.newAssignment,
+                    this.container, this.currentAssignment,
+                    this.pendingLocalization, this.startTime,
+                    this.pendingDownload, this.profileActions,
+                    this.pendingStopProfileActions, workerInitiated);
         }
     };
     
@@ -293,7 +305,7 @@ public class Slot extends Thread implements AutoCloseable {
             return dynamicState.withState(MachineState.EMPTY);
         }
         Future<Void> pendingDownload = staticState.localizer.requestDownloadBaseTopologyBlobs(dynamicState.newAssignment, staticState.port);
-        return dynamicState.withPendingLocalization(dynamicState.newAssignment, pendingDownload).withState(MachineState.WAITING_FOR_BASIC_LOCALIZATION);
+        return dynamicState.withPendingLocalization(dynamicState.newAssignment, pendingDownload).withState(MachineState.WAITING_FOR_BASIC_LOCALIZATION).withWorkerInitiated(true);
     }
     
     /**
@@ -307,7 +319,6 @@ public class Slot extends Thread implements AutoCloseable {
     static DynamicState killContainerForChangedAssignment(DynamicState dynamicState, StaticState staticState) throws Exception {
         assert(dynamicState.container != null);
         
-        staticState.iSupervisor.killedWorker(staticState.port);
         dynamicState.container.kill();
         Future<Void> pendingDownload = null;
         if (dynamicState.newAssignment != null) {
@@ -598,6 +609,10 @@ public class Slot extends Thread implements AutoCloseable {
     }
 
     static DynamicState handleEmpty(DynamicState dynamicState, StaticState staticState) throws InterruptedException, IOException {
+        if (dynamicState.workerInitiated) {
+            staticState.iSupervisor.killedWorker(staticState.port);
+            dynamicState = dynamicState.withWorkerInitiated(false);
+        }
         if (!equivalent(dynamicState.newAssignment, dynamicState.currentAssignment)) {
             return prepareForNewAssignmentNoWorkersRunning(dynamicState, staticState);
         }
